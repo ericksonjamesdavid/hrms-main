@@ -20,23 +20,25 @@ const navigation = [
   { name: "Payroll", href: "/payroll", icon: DollarSign },
 ];
 
-export default function Layout() {
+export default function Layout({ onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // For demo purposes, just reload the page to reset auth state
-    window.location.href = "/login";
+    // Call the logout handler passed from App component
+    onLogout();
   };
 
   return (
-    <div className="min-h-screen "
-    style={{
+    <div
+      className="min-h-screen "
+      style={{
         backgroundImage: "url('src/assets/background.jpg')", // set the backgroung image
         backgroundSize: "cover",
         backgroundPosition: "center",
-      }}>
+      }}
+    >
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -132,7 +134,9 @@ export default function Layout() {
           <div className="p-4 space-y-4">
             <div className="bg-gradient-to-r from-green-50 to-green-50 rounded-xl p-4 border border-green-200">
               <p className="text-xs font-medium text-green-800">Need Help?</p>
-              <p className="text-xs text-green-600 mt-1">Contact support team</p>
+              <p className="text-xs text-green-600 mt-1">
+                Contact support team
+              </p>
             </div>
 
             <Button

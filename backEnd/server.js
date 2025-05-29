@@ -23,6 +23,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Add logging middleware to debug routes
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -33,36 +39,16 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Registration route
-app.post("/api/register", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Check if user already exists
-    const [rows] = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
-    if (rows.length > 0) {
-      return res.status(400).json({ message: "User  already exists" });
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert new user
-    await pool.execute("INSERT INTO users (email, password) VALUES (?, ?)", [email, hashedPassword]);
-
-    res.status(201).json({ message: "User  registered successfully" });
-  } catch (error) {
-    console.error("Register error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 // Login route
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const [rows] = await pool.execute("SELECT id, password FROM users WHERE email = ?", [email]);
+    const [rows] = await pool.execute(
+      "SELECT id, password FROM users WHERE email = ?",
+      [email]
+    );
     if (rows.length === 0) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -73,7 +59,9 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
     res.json({ token });
   } catch (error) {
     console.error("Login error:", error);
@@ -104,6 +92,36 @@ app.get("/test-db", async (req, res) => {
       message: "Database test failed",
       error: error.message,
     });
+  }
+});
+
+// Add a route to create demo user
+app.post("/api/create-demo-user", async (req, res) => {
+  try {
+    const email = "admin@hrms.com";
+    const password = "password123";
+
+    // Check if demo user already exists
+    const [rows] = await pool.execute("SELECT id FROM users WHERE email = ?", [
+      email,
+    ]);
+    if (rows.length > 0) {
+      return res.status(200).json({ message: "Demo user already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert demo user
+    await pool.execute("INSERT INTO users (email, password) VALUES (?, ?)", [
+      email,
+      hashedPassword,
+    ]);
+
+    res.status(201).json({ message: "Demo user created successfully" });
+  } catch (error) {
+    console.error("Create demo user error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -140,7 +158,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     console.log("🚀 Starting HRMS Backend Server...");
-    console.log("=".repeat(50)); // Updated to use repeat
+    console.log("=".repeat(50));
 
     // Test database connection
     console.log("\n📊 Testing Database Connection:");
@@ -149,6 +167,30 @@ const startServer = async () => {
     if (dbConnected) {
       console.log("\n🏗️  Setting up database:");
       await initializeDatabase();
+
+      // Automatically create demo user on startup
+      console.log("\n👤 Setting up demo user:");
+      try {
+        const email = "admin@hrms.com";
+        const password = "password123";
+
+        const [rows] = await pool.execute(
+          "SELECT id FROM users WHERE email = ?",
+          [email]
+        );
+        if (rows.length === 0) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await pool.execute(
+            "INSERT INTO users (email, password) VALUES (?, ?)",
+            [email, hashedPassword]
+          );
+          console.log("✅ Demo user created successfully");
+        } else {
+          console.log("✅ Demo user already exists");
+        }
+      } catch (error) {
+        console.error("❌ Demo user setup failed:", error.message);
+      }
     } else {
       console.log(
         "\n⚠️  Database connection failed, but server will start anyway"
@@ -160,13 +202,22 @@ const startServer = async () => {
 
     // Start listening
     app.listen(PORT, () => {
-      console.log("\n" + "=".repeat(50)); // Updated to use repeat
+      console.log("\n" + "=".repeat(50));
       console.log(`✅ HRMS API Server running on port ${PORT}`);
       console.log(`🌐 Server URL: http://localhost:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/health`);
       console.log(`🔧 Database test: http://localhost:${PORT}/test-db`);
       console.log(`🎯 Frontend URL: ${process.env.FRONTEND_URL}`);
-      console.log("=".repeat(50)); // Updated to use repeat
+      console.log(
+        `🔑 JWT Secret configured: ${process.env.JWT_SECRET ? "Yes" : "No"}`
+      );
+      console.log("\nAvailable API routes:");
+      console.log("  POST /api/login");
+      console.log("  POST /api/register");
+      console.log("  POST /api/create-demo-user");
+      console.log("  GET  /test-db");
+      console.log("  GET  /health");
+      console.log("=".repeat(50));
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);

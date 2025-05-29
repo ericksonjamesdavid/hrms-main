@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"; // Importing button component
 
 // Import icons from Lucide React
 import { Eye, EyeOff, User, Lock, Building2 } from "lucide-react"; // Importing icons for UI elements
+import { authAPI } from "@/services/api"; // Import the API service
 
 // Define the Login component
 export default function Login({ onLogin }) {
@@ -22,6 +23,7 @@ export default function Login({ onLogin }) {
   const [email, setEmail] = useState(""); // State to hold the email input
   const [password, setPassword] = useState(""); // State to hold the password input
   const [isLoading, setIsLoading] = useState(false); // State to indicate loading status during login
+  const [error, setError] = useState(""); // Add error state for displaying login errors
 
   // Get the navigate function from React Router for navigation
   const navigate = useNavigate();
@@ -31,45 +33,62 @@ export default function Login({ onLogin }) {
     // Prevent default form submission behavior
     e.preventDefault();
 
+    // Clear any previous errors
+    setError("");
+
+    // Validate input fields
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
     // Set isLoading to true to display the loading animation
     setIsLoading(true);
 
-    // Simulate API call delay (replace with actual API call)
-    setTimeout(() => {
-      // Set isLoading to false after the delay
-      setIsLoading(false);
+    try {
+      // Call the backend API to authenticate user
+      await authAPI.login(email, password);
 
       // Call the authentication callback passed as a prop
       onLogin();
 
       // Navigate to the dashboard after successful login
       navigate("/dashboard");
-    }, 1000); // Simulated delay of 1 second
+    } catch (error) {
+      // Handle login errors
+      setError(error.message);
+    } finally {
+      // Set isLoading to false after the request completes
+      setIsLoading(false);
+    }
   };
 
   // Return the JSX for the Login component
   return (
     // Container element with gradient background
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4"
-    style={{
+    <div
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4"
+      style={{
         backgroundImage: "url('src/assets/background.jpg')", // set the backgroung image
         backgroundSize: "cover",
         backgroundPosition: "center",
-      }}>
+      }}
+    >
       {/* Max-width container for the login form */}
       <div className="w-full max-w-md">
         {/* Header section with logo and welcome message */}
         <div className="text-center mb-8">
           <div
-  className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-green-700 rounded-2xl mb-4"
-  style={{ boxShadow: '0 0 10px 4px rgba(255, 255, 255, 0.12)' }}
->
-  <Building2 className="w-8 h-8 text-white" /> {/* Logo icon */}
-</div>
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-600 to-green-700 rounded-2xl mb-4"
+            style={{ boxShadow: "0 0 10px 4px rgba(255, 255, 255, 0.12)" }}
+          >
+            <Building2 className="w-8 h-8 text-white" /> {/* Logo icon */}
+          </div>
           <h1 className="text-3xl font-bold bg-black bg-clip-text text-transparent">
             Welcome To Human Resource Management System {/* Main title */}
           </h1>
-          <p className="text-gray-800 mt-2">Sign in to your HRMS account</p> {/* Subtitle */}
+          <p className="text-gray-800 mt-2">Sign in to your HRMS account</p>{" "}
+          {/* Subtitle */}
         </div>
 
         {/* Login card with form and buttons */}
@@ -85,13 +104,21 @@ export default function Login({ onLogin }) {
           <CardContent>
             {/* Login form with email and password fields */}
             <form onSubmit={handleLogin} className="space-y-6">
+              {/* Display error message if there's an error */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               {/* Email field with icon and input */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
                   Email Address {/* Label for email input */}
                 </label>
                 <div className="relative">
-                  <User  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" /> {/* User icon */}
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />{" "}
+                  {/* User icon */}
                   <input
                     type="email" // Input type for email
                     value={email} // Binding the input value to the email state
@@ -109,7 +136,8 @@ export default function Login({ onLogin }) {
                   Password {/* Label for password input */}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" /> {/* Lock icon */}
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />{" "}
+                  {/* Lock icon */}
                   <input
                     type={showPassword ? "text" : "password"} // Toggle between text and password input types
                     value={password} // Binding the input value to the password state
@@ -160,7 +188,8 @@ export default function Login({ onLogin }) {
               >
                 {isLoading ? ( // Conditional rendering for loading state
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {/* Loading spinner */}
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>{" "}
+                    {/* Loading spinner */}
                     <span>Signing in...</span> {/* Loading text */}
                   </div>
                 ) : (
@@ -176,10 +205,12 @@ export default function Login({ onLogin }) {
               </p>
               <div className="space-y-1 text-xs text-green-900">
                 <p>
-                  <span className="font-medium">Email:</span> admin@hrms.com {/* Demo email */}
+                  <span className="font-medium">Email:</span> admin@hrms.com{" "}
+                  {/* Demo email */}
                 </p>
                 <p>
-                  <span className="font-medium">Password:</span> password123 {/* Demo password */}
+                  <span className="font-medium">Password:</span> password123{" "}
+                  {/* Demo password */}
                 </p>
               </div>
             </div>
