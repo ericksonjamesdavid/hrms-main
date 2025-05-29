@@ -358,6 +358,266 @@ app.delete("/api/employees/:id", async (req, res) => {
   }
 });
 
+// Attendance Management Routes
+
+// Get attendance for a specific date
+app.get("/api/attendance/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    const [rows] = await pool.execute(
+      `
+      SELECT 
+        a.id as attendance_id,
+        a.employee_id,
+        a.date,
+        a.check_in,
+        a.check_out,
+        a.status,
+        a.hours_worked,
+        a.notes,
+        e.name as employee_name,
+        e.department,
+        e.position
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.date = ?
+      ORDER BY e.name
+    `,
+      [date]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Get attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all employees with their attendance status for a specific date
+app.get("/api/attendance/full/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    const [rows] = await pool.execute(
+      `
+      SELECT 
+        e.id as employee_id,
+        e.name,
+        e.department,
+        e.position,
+        e.status as employee_status,
+        COALESCE(a.id, null) as attendance_id,
+        COALESCE(a.check_in, null) as check_in,
+        COALESCE(a.check_out, null) as check_out,
+        COALESCE(a.status, 'Not Marked') as attendance_status,
+        COALESCE(a.hours_worked, 0) as hours_worked,
+        COALESCE(a.notes, '') as notes
+      FROM employees e
+      LEFT JOIN attendance a ON e.id = a.employee_id AND a.date = ?
+      WHERE e.status = 'Active'
+      ORDER BY e.name
+    `,
+      [date]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Get full attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Mark attendance for a single employee
+app.post("/api/attendance", async (req, res) => {
+  try {
+    const { employee_id, date, check_in, check_out, status, notes } = req.body;
+
+    // Validate required fields
+    if (!employee_id || !date || !status) {
+      return res.status(400).json({
+        message: "Employee ID, date, and status are required",
+      });
+    }
+
+    // Calculate hours worked
+    let hours_worked = 0;
+    if (check_in && check_out && status !== "Absent") {
+      const checkInTime = new Date(`2000-01-01 ${check_in}`);
+      const checkOutTime = new Date(`2000-01-01 ${check_out}`);
+      hours_worked = (checkOutTime - checkInTime) / (1000 * 60 * 60); // Convert to hours
+    }
+
+    // Check if attendance already exists for this employee and date
+    const [existing] = await pool.execute(
+      "SELECT id FROM attendance WHERE employee_id = ? AND date = ?",
+      [employee_id, date]
+    );
+
+    if (existing.length > 0) {
+      // Update existing attendance
+      await pool.execute(
+        `
+        UPDATE attendance 
+        SET check_in = ?, check_out = ?, status = ?, hours_worked = ?, notes = ?
+        WHERE employee_id = ? AND date = ?
+      `,
+        [check_in, check_out, status, hours_worked, notes, employee_id, date]
+      );
+
+      res.json({ message: "Attendance updated successfully" });
+    } else {
+      // Insert new attendance record
+      await pool.execute(
+        `
+        INSERT INTO attendance (employee_id, date, check_in, check_out, status, hours_worked, notes) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+        [employee_id, date, check_in, check_out, status, hours_worked, notes]
+      );
+
+      res.status(201).json({ message: "Attendance marked successfully" });
+    }
+  } catch (error) {
+    console.error("Mark attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Bulk mark attendance for multiple employees
+app.post("/api/attendance/bulk", async (req, res) => {
+  try {
+    const { date, attendanceRecords } = req.body;
+
+    if (!date || !attendanceRecords || !Array.isArray(attendanceRecords)) {
+      return res.status(400).json({
+        message: "Date and attendance records array are required",
+      });
+    }
+
+    // Begin transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      for (const record of attendanceRecords) {
+        const { employee_id, check_in, check_out, status, notes } = record;
+
+        // Calculate hours worked
+        let hours_worked = 0;
+        if (check_in && check_out && status !== "Absent") {
+          const checkInTime = new Date(`2000-01-01 ${check_in}`);
+          const checkOutTime = new Date(`2000-01-01 ${check_out}`);
+          hours_worked = (checkOutTime - checkInTime) / (1000 * 60 * 60);
+        }
+
+        // Check if attendance exists
+        const [existing] = await connection.execute(
+          "SELECT id FROM attendance WHERE employee_id = ? AND date = ?",
+          [employee_id, date]
+        );
+
+        if (existing.length > 0) {
+          // Update existing
+          await connection.execute(
+            `
+            UPDATE attendance 
+            SET check_in = ?, check_out = ?, status = ?, hours_worked = ?, notes = ?
+            WHERE employee_id = ? AND date = ?
+          `,
+            [
+              check_in,
+              check_out,
+              status,
+              hours_worked,
+              notes,
+              employee_id,
+              date,
+            ]
+          );
+        } else {
+          // Insert new
+          await connection.execute(
+            `
+            INSERT INTO attendance (employee_id, date, check_in, check_out, status, hours_worked, notes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+            [
+              employee_id,
+              date,
+              check_in,
+              check_out,
+              status,
+              hours_worked,
+              notes,
+            ]
+          );
+        }
+      }
+
+      await connection.commit();
+      connection.release();
+
+      res.json({ message: "Bulk attendance marked successfully" });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
+  } catch (error) {
+    console.error("Bulk mark attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get attendance statistics for a date range
+app.get("/api/attendance/stats/:startDate/:endDate", async (req, res) => {
+  try {
+    const { startDate, endDate } = req.params;
+
+    const [stats] = await pool.execute(
+      `
+      SELECT 
+        COUNT(CASE WHEN status = 'Present' THEN 1 END) as present_count,
+        COUNT(CASE WHEN status = 'Absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN status = 'Late' THEN 1 END) as late_count,
+        COUNT(CASE WHEN status = 'Half Day' THEN 1 END) as half_day_count,
+        COUNT(*) as total_records,
+        AVG(hours_worked) as average_hours,
+        (SELECT COUNT(*) FROM employees WHERE status = 'Active') as total_active_employees
+      FROM attendance 
+      WHERE date BETWEEN ? AND ?
+    `,
+      [startDate, endDate]
+    );
+
+    res.json(stats[0]);
+  } catch (error) {
+    console.error("Get attendance stats error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Delete attendance record
+app.delete("/api/attendance/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await pool.execute("DELETE FROM attendance WHERE id = ?", [
+      id,
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+
+    res.json({ message: "Attendance record deleted successfully" });
+  } catch (error) {
+    console.error("Delete attendance error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
@@ -452,6 +712,12 @@ const startServer = async () => {
       console.log("  GET  /api/employees/:id");
       console.log("  PUT  /api/employees/:id");
       console.log("  DELETE /api/employees/:id");
+      console.log("  GET  /api/attendance/full/:date");
+      console.log("  GET  /api/attendance/:date");
+      console.log("  POST /api/attendance");
+      console.log("  POST /api/attendance/bulk");
+      console.log("  GET  /api/attendance/stats/:startDate/:endDate");
+      console.log("  DELETE /api/attendance/:id");
       console.log("  POST /api/create-demo-user");
       console.log("  GET  /test-db");
       console.log("  GET  /health");

@@ -94,8 +94,28 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Create attendance table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id INT NOT NULL,
+        date DATE NOT NULL,
+        check_in TIME,
+        check_out TIME,
+        status ENUM('Present', 'Absent', 'Late', 'Half Day', 'Holiday') NOT NULL,
+        hours_worked DECIMAL(4,2) DEFAULT 0,
+        notes TEXT,
+        marked_by_admin BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_employee_date (employee_id, date)
+      )
+    `);
+
     console.log("✅ Users table initialized successfully");
     console.log("✅ Employees table initialized successfully");
+    console.log("✅ Attendance table initialized successfully");
     connection.release();
     return true;
   } catch (error) {

@@ -218,3 +218,155 @@ export const employeeAPI = {
     }
   },
 };
+
+// API service for attendance management
+export const attendanceAPI = {
+  // Get attendance for a specific date
+  getByDate: async (date) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/attendance/${date}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attendance");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get attendance error:", error);
+      throw error;
+    }
+  },
+
+  // Get all employees with attendance status for a date
+  getFullAttendance: async (date) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/attendance/full/${date}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch full attendance");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get full attendance error:", error);
+      throw error;
+    }
+  },
+
+  // Mark attendance for single employee
+  markAttendance: async (attendanceData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/attendance`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attendanceData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to mark attendance");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Mark attendance error:", error);
+      throw error;
+    }
+  },
+
+  // Bulk mark attendance
+  bulkMarkAttendance: async (date, attendanceRecords) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/attendance/bulk`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ date, attendanceRecords }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to bulk mark attendance");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Bulk mark attendance error:", error);
+      throw error;
+    }
+  },
+
+  // Get attendance statistics
+  getStats: async (startDate, endDate) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/attendance/stats/${startDate}/${endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attendance stats");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get attendance stats error:", error);
+      throw error;
+    }
+  },
+
+  // Delete attendance record
+  delete: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/attendance/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete attendance");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Delete attendance error:", error);
+      throw error;
+    }
+  },
+};
