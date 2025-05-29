@@ -552,90 +552,6 @@ export const leaveRequestAPI = {
 
 // API service for payroll management
 export const payrollAPI = {
-  // Get payroll settings for employee
-  getSettings: async (employeeId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_BASE_URL}/api/payroll-settings/${employeeId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch payroll settings");
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("Get payroll settings error:", error);
-      throw error;
-    }
-  },
-
-  // Update payroll settings
-  updateSettings: async (employeeId, settings) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_BASE_URL}/api/payroll-settings/${employeeId}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(settings),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update payroll settings");
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Update payroll settings error:", error);
-      throw error;
-    }
-  },
-
-  // Calculate payroll for period
-  calculate: async (employeeId, startDate, endDate) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/payroll/calculate`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          employee_id: employeeId,
-          start_date: startDate,
-          end_date: endDate,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to calculate payroll");
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Calculate payroll error:", error);
-      throw error;
-    }
-  },
-
   // Get all payroll records
   getAll: async (filters = {}) => {
     try {
@@ -643,13 +559,11 @@ export const payrollAPI = {
       const queryParams = new URLSearchParams();
 
       Object.keys(filters).forEach((key) => {
-        if (filters[key] && filters[key] !== "All") {
-          queryParams.append(key, filters[key]);
-        }
+        if (filters[key]) queryParams.append(key, filters[key]);
       });
 
       const url = queryParams.toString()
-        ? `${API_BASE_URL}/api/payroll?${queryParams.toString()}`
+        ? `${API_BASE_URL}/api/payroll?${queryParams}`
         : `${API_BASE_URL}/api/payroll`;
 
       const response = await fetch(url, {
@@ -666,6 +580,32 @@ export const payrollAPI = {
       return await response.json();
     } catch (error) {
       console.error("Get payroll records error:", error);
+      throw error;
+    }
+  },
+
+  // Calculate payroll for an employee
+  calculate: async (employee_id, start_date, end_date) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/payroll/calculate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ employee_id, start_date, end_date }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to calculate payroll");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Calculate payroll error:", error);
       throw error;
     }
   },
@@ -706,7 +646,7 @@ export const payrollAPI = {
       if (month) queryParams.append("month", month);
 
       const url = queryParams.toString()
-        ? `${API_BASE_URL}/api/payroll/stats?${queryParams.toString()}`
+        ? `${API_BASE_URL}/api/payroll/stats?${queryParams}`
         : `${API_BASE_URL}/api/payroll/stats`;
 
       const response = await fetch(url, {
@@ -717,7 +657,7 @@ export const payrollAPI = {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch payroll statistics");
+        throw new Error("Failed to fetch payroll stats");
       }
 
       return await response.json();
@@ -748,6 +688,60 @@ export const payrollAPI = {
       return data;
     } catch (error) {
       console.error("Delete payroll error:", error);
+      throw error;
+    }
+  },
+
+  // Get payroll settings for an employee
+  getSettings: async (employee_id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/payroll-settings/${employee_id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payroll settings");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get payroll settings error:", error);
+      throw error;
+    }
+  },
+
+  // Update payroll settings for an employee
+  updateSettings: async (employee_id, settings) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/payroll-settings/${employee_id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(settings),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update payroll settings");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Update payroll settings error:", error);
       throw error;
     }
   },
