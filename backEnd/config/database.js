@@ -71,11 +71,31 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create employees table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS employees (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        department VARCHAR(100) NOT NULL,
+        position VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        address TEXT,
+        hire_date DATE,
+        salary DECIMAL(10,2),
+        status ENUM('Active', 'Inactive', 'On Leave') DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
 
     console.log("✅ Users table initialized successfully");
+    console.log("✅ Employees table initialized successfully");
     connection.release();
     return true;
   } catch (error) {
@@ -83,6 +103,5 @@ export const initializeDatabase = async () => {
     return false;
   }
 };
-
 
 export default pool;

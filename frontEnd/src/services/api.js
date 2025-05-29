@@ -1,17 +1,5 @@
-// Detect if we're on localhost or a network IP
-const getApiBaseUrl = () => {
-  const hostname = window.location.hostname;
-
-  // If accessing via IP address, use that IP for API calls
-  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-    return `http://${hostname}:5000`;
-  }
-
-  // Default to localhost
-  return "http://localhost:5000";
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// Always use localhost for backend API calls since each developer runs their own backend
+const API_BASE_URL = "http://localhost:5000";
 
 // API service for authentication
 export const authAPI = {
@@ -103,6 +91,130 @@ export const authAPI = {
     } catch (error) {
       console.error("Server connection test failed:", error);
       return false;
+    }
+  },
+};
+
+// API service for employee management
+export const employeeAPI = {
+  // Get all employees
+  getAll: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/employees`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch employees");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get employees error:", error);
+      throw error;
+    }
+  },
+
+  // Get single employee
+  getById: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch employee");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get employee error:", error);
+      throw error;
+    }
+  },
+
+  // Add new employee
+  create: async (employeeData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/employees`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(employeeData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to add employee");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Add employee error:", error);
+      throw error;
+    }
+  },
+
+  // Update employee
+  update: async (id, employeeData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(employeeData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update employee");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Update employee error:", error);
+      throw error;
+    }
+  },
+
+  // Delete employee
+  delete: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/employees/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete employee");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Delete employee error:", error);
+      throw error;
     }
   },
 };
