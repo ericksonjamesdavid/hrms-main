@@ -12,10 +12,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // CORS configuration
+const allowedOrigins =
+  process.env.FRONTEND_URL === "*"
+    ? true // Allow all origins in development
+    : process.env.FRONTEND_URL.split(",").map((url) => url.trim());
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
@@ -25,7 +32,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add logging middleware to debug routes
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(
+    `${new Date().toISOString()} - ${req.method} ${
+      req.path
+    } - Origin: ${req.get("Origin")}`
+  );
   next();
 });
 
@@ -38,7 +49,6 @@ app.get("/health", (req, res) => {
     database: "MySQL",
   });
 });
-
 
 // Login route
 app.post("/api/login", async (req, res) => {
@@ -201,13 +211,14 @@ const startServer = async () => {
     }
 
     // Start listening
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log("\n" + "=".repeat(50));
       console.log(`✅ HRMS API Server running on port ${PORT}`);
       console.log(`🌐 Server URL: http://localhost:${PORT}`);
+      console.log(`🌐 Network URL: http://0.0.0.0:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/health`);
       console.log(`🔧 Database test: http://localhost:${PORT}/test-db`);
-      console.log(`🎯 Frontend URL: ${process.env.FRONTEND_URL}`);
+      console.log(`🎯 CORS Origins: ${process.env.FRONTEND_URL}`);
       console.log(
         `🔑 JWT Secret configured: ${process.env.JWT_SECRET ? "Yes" : "No"}`
       );

@@ -1,4 +1,17 @@
-const API_BASE_URL = "http://localhost:5000";
+// Detect if we're on localhost or a network IP
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+
+  // If accessing via IP address, use that IP for API calls
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    return `http://${hostname}:5000`;
+  }
+
+  // Default to localhost
+  return "http://localhost:5000";
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // API service for authentication
 export const authAPI = {
