@@ -370,3 +370,385 @@ export const attendanceAPI = {
     }
   },
 };
+
+// API service for leave request management
+export const leaveRequestAPI = {
+  // Get all leave requests
+  getAll: async (status = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = status
+        ? `${API_BASE_URL}/api/leave-requests?status=${status}`
+        : `${API_BASE_URL}/api/leave-requests`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave requests");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get leave requests error:", error);
+      throw error;
+    }
+  },
+
+  // Get single leave request
+  getById: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/leave-requests/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave request");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get leave request error:", error);
+      throw error;
+    }
+  },
+
+  // Create new leave request
+  create: async (leaveRequestData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/leave-requests`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(leaveRequestData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create leave request");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Create leave request error:", error);
+      throw error;
+    }
+  },
+
+  // Update leave request status
+  updateStatus: async (id, status, admin_notes = "") => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/leave-requests/${id}/status`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status, admin_notes }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update leave request");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Update leave request error:", error);
+      throw error;
+    }
+  },
+
+  // Get leave balances for employee
+  getBalances: async (employeeId, year = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = year
+        ? `${API_BASE_URL}/api/leave-balances/${employeeId}?year=${year}`
+        : `${API_BASE_URL}/api/leave-balances/${employeeId}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave balances");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get leave balances error:", error);
+      throw error;
+    }
+  },
+
+  // Get leave statistics
+  getStats: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/leave-requests/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave statistics");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get leave stats error:", error);
+      throw error;
+    }
+  },
+
+  // Delete leave request
+  delete: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/leave-requests/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete leave request");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Delete leave request error:", error);
+      throw error;
+    }
+  },
+};
+
+// API service for payroll management
+export const payrollAPI = {
+  // Get payroll settings for employee
+  getSettings: async (employeeId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/payroll-settings/${employeeId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payroll settings");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get payroll settings error:", error);
+      throw error;
+    }
+  },
+
+  // Update payroll settings
+  updateSettings: async (employeeId, settings) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_BASE_URL}/api/payroll-settings/${employeeId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(settings),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update payroll settings");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Update payroll settings error:", error);
+      throw error;
+    }
+  },
+
+  // Calculate payroll for period
+  calculate: async (employeeId, startDate, endDate) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/payroll/calculate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_id: employeeId,
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to calculate payroll");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Calculate payroll error:", error);
+      throw error;
+    }
+  },
+
+  // Get all payroll records
+  getAll: async (filters = {}) => {
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams();
+
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] && filters[key] !== "All") {
+          queryParams.append(key, filters[key]);
+        }
+      });
+
+      const url = queryParams.toString()
+        ? `${API_BASE_URL}/api/payroll?${queryParams.toString()}`
+        : `${API_BASE_URL}/api/payroll`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payroll records");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get payroll records error:", error);
+      throw error;
+    }
+  },
+
+  // Update payroll status
+  updateStatus: async (id, status, notes = "") => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/payroll/${id}/status`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status, notes }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update payroll status");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Update payroll status error:", error);
+      throw error;
+    }
+  },
+
+  // Get payroll statistics
+  getStats: async (year = null, month = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams();
+
+      if (year) queryParams.append("year", year);
+      if (month) queryParams.append("month", month);
+
+      const url = queryParams.toString()
+        ? `${API_BASE_URL}/api/payroll/stats?${queryParams.toString()}`
+        : `${API_BASE_URL}/api/payroll/stats`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payroll statistics");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get payroll stats error:", error);
+      throw error;
+    }
+  },
+
+  // Delete payroll record
+  delete: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/payroll/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete payroll record");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Delete payroll error:", error);
+      throw error;
+    }
+  },
+};
